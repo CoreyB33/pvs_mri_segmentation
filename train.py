@@ -4,8 +4,8 @@ import os
 from subprocess import Popen, PIPE
 import sys
 
-from utils import utils, patch_ops
-from utils import preprocess
+import utils
+import patch_ops
 
 from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping, ReduceLROnPlateau
 from keras.models import load_model
