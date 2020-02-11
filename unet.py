@@ -67,7 +67,7 @@ def unet(model_path,
     conv9 = Conv2D(2, 3, activation='relu', padding='same', )(conv9)
     conv10 = Conv2D(1, 1, activation='sigmoid')(conv9)
 
-    model = tf.keras.Model(input=inputs, output=conv10)
+    model = tf.keras.Model(inputs=inputs, outputs=conv10)
 
     # dice as a human-readble metric
     model.compile(optimizer=Adam(lr=lr),
