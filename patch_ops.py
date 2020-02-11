@@ -3,7 +3,7 @@ import numpy as np
 import nibabel as nib
 from sklearn.utils import shuffle
 from tqdm import tqdm
-from .pad import pad_image
+from pad import pad_image
 import random
 import copy
 import math
