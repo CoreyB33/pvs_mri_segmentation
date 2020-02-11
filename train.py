@@ -13,9 +13,9 @@ from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStoppi
 from tensorflow.keras.models import load_model
 from tensorflow.keras.optimizers import Adam
 
-from models.multi_gpu import ModelMGPU
-from models.losses import *
-from models.unet import unet
+from multi_gpu import ModelMGPU
+from losses import *
+from unet import unet
 
 os.environ['FSLOUTPUTTYPE'] = 'NIFTI_GZ'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
