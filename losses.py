@@ -1,4 +1,3 @@
-import tensorflow
 from tensorflow.keras.losses import binary_crossentropy
 from tensorflow.keras import backend as K
 from tensorflow.keras.backend.common import epsilon
