@@ -6,10 +6,12 @@ import sys
 
 import utils
 import patch_ops
+import tensorflow as tf
 
-from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping, ReduceLROnPlateau
-from keras.models import load_model
-from keras.optimizers import Adam
+
+from tf.keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping, ReduceLROnPlateau
+from tf.keras.models import load_model
+from tf.keras.optimizers import Adam
 
 from models.multi_gpu import ModelMGPU
 from models.losses import *
