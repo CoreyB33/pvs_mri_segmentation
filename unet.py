@@ -1,8 +1,8 @@
 from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D, AveragePooling2D, concatenate,\
     GlobalAveragePooling2D, add, UpSampling2D
 from tensorflow.keras.layers import Concatenate
-from tensorflow.keras.layers.core import Activation, Dropout
-from tensorflow.keras.layers.normalization import BatchNormalization
+from tensorflow.keras.layers import Activation, Dropout
+from tensorflow.keras.layers import BatchNormalization
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import Model
 from tensorflow.keras import backend as K
