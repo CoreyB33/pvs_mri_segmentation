@@ -113,9 +113,9 @@ if __name__ == "__main__":
     
     n_split=5
  
-    for train_index,test_index in KFold(n_split).split(X):
-        x_train,x_test=X[train_index],X[test_index]
-        y_train,y_test=Y[train_index],Y[test_index]
+    for train_index,val_index in KFold(n_split).split(X):
+        t1_train,t1_val=X[train_index],X[val_index]
+        mask_train,mask_val=Y[train_index],Y[val_index]
     
     t1_patches, mask_patches = patch_ops.CreatePatchesForTraining(
         atlasdir=DATA_DIR,
