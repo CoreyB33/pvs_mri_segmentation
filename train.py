@@ -111,12 +111,6 @@ if __name__ == "__main__":
     ######### DATA IMPORT #########
     DATA_DIR = os.path.join("data", "train")
     
-    n_split=5
- 
-    for train_index,val_index in KFold(n_split).split(X):
-        t1_train,t1_val=X[train_index],X[val_index]
-        mask_train,mask_val=Y[train_index],Y[val_index]
-    
     t1_patches, mask_patches = patch_ops.CreatePatchesForTraining(
         atlasdir=DATA_DIR,
         plane=plane,
