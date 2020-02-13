@@ -298,6 +298,8 @@ def CreatePatchesForTraining(atlasdir, plane, patchsize, max_patch=150000, num_c
     t1_names.sort()
     flair_names.sort()
     mask_names.sort()
+    
+    
 
     numatlas = len(t1_names)
 
@@ -397,6 +399,12 @@ def CreatePatchesForTraining(atlasdir, plane, patchsize, max_patch=150000, num_c
             if t1.shape[1] < t1.shape[0]:
                 patchsize = (patchsize[0], t1.shape[1]//4)
         patchsize = np.asarray(patchsize, dtype=int)
+        
+        #n_split=5
+ 
+        #for train_index,val_index in KFold(n_split).split(invols):
+        #    t1_train,t1_val=X[train_index],X[val_index]
+        #    mask_train,mask_val=Y[train_index],Y[val_index]
 
         t1PatchesA, MaskPatchesA = get_patches(invols,
                                                mask,
