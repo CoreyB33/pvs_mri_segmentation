@@ -111,6 +111,12 @@ if __name__ == "__main__":
     ######### DATA IMPORT #########
     DATA_DIR = os.path.join("data", "train")
     
+    n_split=5
+ 
+    for train_index,test_index in KFold(n_split).split(X):
+        x_train,x_test=X[train_index],X[test_index]
+        y_train,y_test=Y[train_index],Y[test_index]
+    
     t1_patches, mask_patches = patch_ops.CreatePatchesForTraining(
         atlasdir=DATA_DIR,
         plane=plane,
@@ -122,18 +128,12 @@ if __name__ == "__main__":
     print("Num patches:", len(t1_patches))
     print("t1_patches shape: {}\nmask_patches shape: {}".format(
         t1_patches.shape, mask_patches.shape))
-
-
-n_split=3
- 
-for train_index,test_index in KFold(n_split).split(X):
-  x_train,x_test=X[train_index],X[test_index]
-  y_train,y_test=Y[train_index],Y[test_index]
   
-  model=create_model()
-  model.fit(x_train, y_train,epochs=20)
+    # Below two lines can be removed
+ # model=create_model()
+ # model.fit(x_train, y_train,epochs=20)
   
-  print('Model evaluation ',model.evaluate(x_test,y_test))
+ # print('Model evaluation ',model.evaluate(x_test,y_test))
 
     ######### TRAINING #########
     history = model.fit(t1_patches,
