@@ -111,12 +111,14 @@ if __name__ == "__main__":
     ######### DATA IMPORT #########
     DATA_DIR = os.path.join("data", "train")
     
-    t1_patches, mask_patches = patch_ops.CreatePatchesForTraining(
+    t1_patches, mask_patches, les_per_im = patch_ops.CreatePatchesForTraining(
         atlasdir=DATA_DIR,
         plane=plane,
         patchsize=PATCH_SIZE,
         max_patch=num_patches,
         num_channels=num_channels)
+    
+    les_per_im=les_per_im.astype('int32')
 
     print("Individual patch dimensions:", t1_patches[0].shape)
     print("Num patches:", len(t1_patches))
