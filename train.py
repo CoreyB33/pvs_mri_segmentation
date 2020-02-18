@@ -305,8 +305,8 @@ if __name__ == "__main__":
  # print('Model evaluation ',model.evaluate(x_test,y_test))
 
         ######### TRAINING #########
-        history = model.fit(t1_patches,
-                            mask_patches,
+        history = model.fit(t1_train,
+                            mask_train,
                             batch_size=batch_size,
                             epochs=num_epochs,
                             verbose=1,
