@@ -48,10 +48,10 @@ def get_patches(invols, mask, patchsize, maxpatch, num_channels):
     randidx = rng.sample(range(0, total_lesion_patches), num_patches)
     # here, 3 corresponds to each axis of the 3D volume
     shuffled_mask_lesion_indices = np.ndarray((3, num_patches))
-    for i in range(0, num_patches):
-        for j in range(0, 3):
-            shuffled_mask_lesion_indices[j,
-                                         i] = mask_lesion_indices[j, randidx[i]]
+    for m in range(0, num_patches):
+        for n in range(0, 3):
+            shuffled_mask_lesion_indices[n,
+                                         m] = mask_lesion_indices[n, randidx[m]]
     shuffled_mask_lesion_indices = np.asarray(
         shuffled_mask_lesion_indices, dtype=int)
 
@@ -68,10 +68,10 @@ def get_patches(invols, mask, patchsize, maxpatch, num_channels):
     randidx0 = rng.sample(range(0, num_healthy_indices), num_patches)
     # here, 3 corresponds to each axis of the 3D volume
     shuffled_healthy_brain_indices = np.ndarray((3, num_patches))
-    for i in range(0, num_patches):
-        for j in range(0, 3):
-            shuffled_healthy_brain_indices[j,
-                                           i] = healthy_brain_indices[j, randidx0[i]]
+    for m in range(0, num_patches):
+        for n in range(0, 3):
+            shuffled_healthy_brain_indices[n,
+                                           m] = healthy_brain_indices[n, randidx0[m]]
     shuffled_healthy_brain_indices = np.asarray(
         shuffled_healthy_brain_indices, dtype=int)
 
@@ -87,19 +87,19 @@ def get_patches(invols, mask, patchsize, maxpatch, num_channels):
     t1Patches = np.ndarray(t1_matsize, dtype=np.float16)
     MaskPatches = np.ndarray(Mask_matsize, dtype=np.float16)
 
-    for i in range(0, 2*num_patches):
-        I = newidx[0, i]
-        J = newidx[1, i]
-        K = newidx[2, i]
+    for z in range(0, 2*num_patches):
+        I = newidx[0, z]
+        J = newidx[1, z]
+        K = newidx[2, z]
         
 
         for c in range(num_channels):
 
-            t1Patches[i, :, :, c] = invols[c][I - dsize[0]: I + dsize[0],
+            t1Patches[z, :, :, c] = invols[c][I - dsize[0]: I + dsize[0],
                                               J - dsize[1]: J + dsize[1],
                                               K]
 
-        MaskPatches[i, :, :, 0] = mask[I - dsize[0]: I + dsize[0],
+        MaskPatches[z, :, :, 0] = mask[I - dsize[0]: I + dsize[0],
                                        J - dsize[1]:J + dsize[1],
                                        K]
     # Augmentation
@@ -350,7 +350,7 @@ def CreatePatchesForTraining(atlasdir, plane, patchsize, max_patch=150000, num_c
 
     indices = [x for x in range(doubled_num_patches)]
     #indices = [x for x in range(oct_num_patches)]
-    indices = shuffle(indices, random_state=0)
+    #indices = shuffle(indices, random_state=0)
     cur_idx = 0
 
     # interpret plane
@@ -364,6 +364,7 @@ def CreatePatchesForTraining(atlasdir, plane, patchsize, max_patch=150000, num_c
         t1name = os.path.join(atlasdir, t1name)
         flairname = flair_names[i]
         flairname = os.path.join(atlasdir, flairname)
+        cur_idx2=0
 
         temp = nib.load(t1name)
         t1 = temp.get_data()
@@ -419,5 +420,9 @@ def CreatePatchesForTraining(atlasdir, plane, patchsize, max_patch=150000, num_c
             t1Patches[indices[cur_idx], :, :, :] = t1_patch
             MaskPatches[indices[cur_idx], :, :, :] = mask_patch
             cur_idx += 1
+            cur_idx2 += 1
+            
+        n_split=5
+        les_per_im[i]=cur_idx2
 
-    return (t1Patches, MaskPatches)
+    return (t1Patches, MaskPatches, les_per_im)
