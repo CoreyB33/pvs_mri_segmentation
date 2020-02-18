@@ -310,7 +310,7 @@ if __name__ == "__main__":
                             batch_size=batch_size,
                             epochs=num_epochs,
                             verbose=1,
-                            validation_split=0.2,
+                            validation_split=0,
                             callbacks=callbacks_list,)
 
         with open(HISTORY_PATH, 'w') as f:
