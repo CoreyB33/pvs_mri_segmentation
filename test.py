@@ -1,26 +1,27 @@
-import json
-import numpy as np
 import os
+import numpy as np
+import nibabel as nib
 from subprocess import Popen, PIPE
-import sys
 
-from utils import utils, patch_ops
+from sklearn import metrics
+from utils import utils
 from utils import preprocess
-
-from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping, ReduceLROnPlateau
-from keras.models import load_model
-from keras.optimizers import Adam
-
-from models.multi_gpu import ModelMGPU
+from utils.save_figures import *
+from utils.apply_model import apply_model_single_input
+from utils.apply_model import apply_model
+from utils.pad import pad_image
+from tensorflow.keras.models import load_model
+from tensorflow.keras import backend as K
 from models.losses import *
-from models.unet import unet
 
 os.environ['FSLOUTPUTTYPE'] = 'NIFTI_GZ'
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 if __name__ == "__main__":
 
-    results = utils.parse_args("train")
+    ######################## COMMAND LINE ARGUMENTS ########################
+    results = utils.parse_args("validate")
+    DATA_DIR = results.VAL_DIR
+    num_channels = results.num_channels
 
     NUM_GPUS = 1
     if results.GPUID == None:
@@ -34,111 +35,177 @@ if __name__ == "__main__":
     else:
         os.environ["CUDA_VISIBLE_DEVICES"] = str(results.GPUID)
 
-    num_channels = results.num_channels
-    plane = results.plane
-    num_epochs = 1000000
-    num_patches = results.num_patches
-    batch_size = results.batch_size
-    model = results.model
-    model_architecture = "unet"
-    start_time = utils.now()
-    experiment_details = start_time + "_" + model_architecture + "_" +\
-            results.experiment_details
-    loss = results.loss
-    learning_rate = 1e-4
+    model_filename = results.weights
 
-    utils.save_args_to_csv(results, os.path.join("results", experiment_details))
+    thresh = results.threshold
+    if DATA_DIR.split(os.sep)[1] == "test":
+        dir_tag = open("host_id.cfg").read().split()[
+            0] + "_" + DATA_DIR.split(os.sep)[1]
+    else:
+        dir_tag = DATA_DIR.split(os.sep)[1]
+    experiment_name = os.path.basename(model_filename)[:os.path.basename(model_filename)
+                                                       .find("_weights")] + "_" + dir_tag
 
-    WEIGHT_DIR = os.path.join("models", "weights", experiment_details)
-    TB_LOG_DIR = os.path.join("models", "tensorboard", start_time)
+    utils.save_args_to_csv(results, os.path.join("results", experiment_name))
 
-    MODEL_NAME = model_architecture + "_model_" + experiment_details
-    MODEL_PATH = os.path.join(WEIGHT_DIR, MODEL_NAME + ".json")
+    ######################## PREPROCESS TESTING DATA ########################
+    SKULLSTRIP_SCRIPT_PATH = os.path.join("utils", "CT_BET.sh")
 
-    HISTORY_PATH = os.path.join(WEIGHT_DIR, MODEL_NAME + "_history.json")
+    PREPROCESSING_DIR = os.path.join(DATA_DIR, "preprocessed")
+    SEG_ROOT_DIR = os.path.join(DATA_DIR, "segmentations")
+    STATS_DIR = os.path.join("results", experiment_name)
+    FIGURES_DIR = os.path.join("results", experiment_name, "figures")
+    SEG_DIR = os.path.join(SEG_ROOT_DIR, experiment_name)
+    REORIENT_DIR = os.path.join(SEG_DIR, "reoriented")
 
-    # files and paths
-    TRAIN_DIR = results.SRC_DIR
-
-    for d in [WEIGHT_DIR, TB_LOG_DIR]:
+    for d in [PREPROCESSING_DIR, SEG_ROOT_DIR, STATS_DIR, SEG_DIR, REORIENT_DIR, FIGURES_DIR]:
         if not os.path.exists(d):
             os.makedirs(d)
 
-    PATCH_SIZE = [int(x) for x in results.patch_size.split("x")]
+    # Stats file
+    stat_filename = "result_" + experiment_name + ".csv"
+    STATS_FILE = os.path.join(STATS_DIR, stat_filename)
+    DICE_METRICS_FILE = os.path.join(
+        STATS_DIR, "detailed_dice_" + experiment_name + ".csv")
 
-    ######### MODEL AND CALLBACKS #########
-    if not model:
-        model = unet(model_path=MODEL_PATH,
-                          num_channels=num_channels,
-                          loss=dice_coef_loss,
-                          ds=2,
-                          lr=learning_rate,
-                          num_gpus=NUM_GPUS,
-                          verbose=1,)
-    else:
-        print("Continuing training with", model)
-        model = load_model(model, custom_objects=custom_losses)
+    ######################## LOAD MODEL ########################
+    model = load_model(model_filename,
+                       custom_objects=custom_losses)
 
-    monitor = "val_dice_coef"
-
-    # checkpoints
-    checkpoint_filename = str(start_time) +\
-        "_epoch_{epoch:04d}_" +\
-        monitor+"_{"+monitor+":.4f}_weights.hdf5"
-
-    checkpoint_filename = os.path.join(WEIGHT_DIR, checkpoint_filename)
-    checkpoint = ModelCheckpoint(checkpoint_filename,
-                                 monitor='val_loss',
-                                 save_best_only=True,
-                                 mode='auto',
-                                 verbose=0,)
-
-    # tensorboard
-    tb = TensorBoard(log_dir=TB_LOG_DIR)
-
-    # early stopping
-    es = EarlyStopping(monitor="val_loss",
-                       min_delta=1e-4,
-                       patience=10,
-                       verbose=1,
-                       mode='auto')
-
-    callbacks_list = [checkpoint, tb, es]
-
-    ######### PREPROCESS TRAINING DATA #########
-    DATA_DIR = os.path.join("data", "train")
-    # PREPROCESSED_DIR = os.path.join(DATA_DIR, "preprocessed")
-    # SKULLSTRIP_SCRIPT_PATH = os.path.join("utils", "CT_BET.sh")
+    ######################## PREPROCESSING ########################
+    filenames = [x for x in os.listdir(DATA_DIR)
+                 if not os.path.isdir((os.path.join(DATA_DIR, x)))]
+    filenames.sort()
 
     # preprocess.preprocess_dir(DATA_DIR,
-      #                        PREPROCESSED_DIR,
-       #                       SKULLSTRIP_SCRIPT_PATH,)
+      #                        PREPROCESSING_DIR,
+       #                       SKULLSTRIP_SCRIPT_PATH)
 
-    ######### DATA IMPORT #########
-    t1_patches, mask_patches = patch_ops.CreatePatchesForTraining(
-        atlasdir=DATA_DIR,
-        plane=plane,
-        patchsize=PATCH_SIZE,
-        max_patch=num_patches,
-        num_channels=num_channels)
+    ######################## SEGMENT FILES ########################
+    filenames = [x for x in os.listdir(DATA_DIR)
+                 if not os.path.isdir(os.path.join(DATA_DIR, x))]
+    masks = [x for x in filenames if "pvs" in x]
+    # Using 4D file instead of just t1, if using just t1, use "t1" instead of "multi"
+    filenames = [x for x in filenames if "t1" in x]
+    
 
-    print("Individual patch dimensions:", t1_patches[0].shape)
-    print("Num patches:", len(t1_patches))
-    print("t1_patches shape: {}\nmask_patches shape: {}".format(
-        t1_patches.shape, mask_patches.shape))
+    filenames.sort()
+    masks.sort()
+
+    if len(filenames) != len(masks):
+        print("Error, file missing. #t1:{}, #masks:{}".format(
+            len(filenames), len(masks)))
+
+    print("Using model:", model_filename)
+
+    # used only for printing result
+    mean_dice = 0
+    pred_vols = []
+    gt_vols = []
+
+    roc_aucs = []
+    precision_scores = []
+
+    for filename, mask in zip(filenames, masks):
+        # load nifti file data
+        nii_obj = nib.load(os.path.join(DATA_DIR, filename))
+        nii_img = nii_obj.get_data()
+        header = nii_obj.header
+        affine = nii_obj.affine
+
+        #print("nii image shape = {}".format(nii_img.shape))
+        
+        # load mask file data
+        mask_obj = nib.load(os.path.join(DATA_DIR, mask))
+        mask_img = mask_obj.get_data()
+
+        # pad and reshape to account for implicit "1" channel
+        # Uncomment if using just t1
+        nii_img = np.reshape(nii_img, nii_img.shape + (1,))
+        
+        orig_shape = nii_img.shape
+
+        print("nii img shape from test.py= {}".format(nii_img.shape))
+        
+        # if the mask is larger, pad to hardcoded value 
+        if mask_img.shape[0] > nii_img.shape[0] or mask_img.shape[1] > nii_img.shape[1]:
+            TARGET_DIMS = (656,656,96)
+            nii_img = pad_image(nii_img, target_dims=TARGET_DIMS)
+            mask_img = pad_image(mask_img, target_dims=TARGET_DIMS)
+        else: # otherwise pad normally
+            nii_img = pad_image(nii_img)
+            mask_img = pad_image(mask_img, target_dims=nii_img.shape[:3])
+
+
+        # segment
+        segmented_img = apply_model_single_input(nii_img, model)
+        pred_shape = segmented_img.shape
+
+        # create nii obj
+        segmented_nii_obj = nib.Nifti1Image(
+            segmented_img, affine=affine, header=header)
 
 
 
-    ######### TRAINING #########
-    history = model.fit(t1_patches,
-                        mask_patches,
-                        batch_size=batch_size,
-                        epochs=num_epochs,
-                        verbose=1,
-                        validation_split=0.2,
-                        callbacks=callbacks_list,)
+        mask_obj = nib.Nifti1Image(
+            mask_img, affine=mask_obj.affine, header=mask_obj.header)
 
-    with open(HISTORY_PATH, 'w') as f:
-        json.dump(history.history, f)
+        # write statistics to file
+        print("Collecting stats...")
+        cur_vol_dice, cur_slices_dice, cur_vol, cur_vol_gt = utils.write_stats(filename,
+                                                                               segmented_nii_obj,
+                                                                               mask_obj,
+                                                                               STATS_FILE,
+                                                                               thresh,)
+
+        # crop off the padding if necessary
+        diff_num_slices = int(np.abs(pred_shape[-1]-orig_shape[-2])/2)
+
+        print("Orig shape: {}".format(orig_shape))
+        print("Pred shape: {}".format(pred_shape))
+        print("Slice diff: {}".format(diff_num_slices))
+
+        if int(np.abs(pred_shape[-1] - orig_shape[-2])) > 0:
+            diff_num_slices = int(np.abs(pred_shape[-1]-orig_shape[-2])/2)
+            print("New shape: {}".format(segmented_img[:, :, diff_num_slices:-diff_num_slices].shape
+                                         ))
+            segmented_img = segmented_img[:, :,
+                                          diff_num_slices:-diff_num_slices]
+
+        # save resultant image
+        segmented_filename = os.path.join(SEG_DIR, filename)
+        segmented_nii_obj = nib.Nifti1Image(
+            segmented_img, affine=affine, header=header)
+        nib.save(segmented_nii_obj, segmented_filename)
+
+        utils.write_dice_scores(filename, cur_vol_dice,
+                                cur_slices_dice, DICE_METRICS_FILE)
+
+        mean_dice += cur_vol_dice
+        pred_vols.append(cur_vol)
+        gt_vols.append(cur_vol_gt)
+
+        # Reorient back to original before comparisons
+        # print("Reorienting...")
+        # utils.reorient(filename, DATA_DIR, SEG_DIR)
+
+        # get probability volumes and threshold image
+        print("Thresholding...")
+        utils.threshold(filename, SEG_DIR, SEG_DIR, thresh)
+
+    mean_dice = mean_dice / len(filenames)
+    pred_vols = np.array(pred_vols)
+    gt_vols = np.array(gt_vols)
+    corr = np.corrcoef(pred_vols, gt_vols)[0, 1]
+    print("*** Segmentation complete. ***")
+    print("Mean DICE: {:.3f}".format(mean_dice))
+    print("Volume Correlation: {:.3f}".format(corr))
+
+    # save these two numbers to file
+    metrics_path = os.path.join(STATS_DIR, "metrics.txt")
+    with open(metrics_path, 'w') as f:
+        f.write("Dice: {:.4f}\nVolume Correlation: {:.4f}\n".format(
+            mean_dice,
+            corr))
 
     K.clear_session()
