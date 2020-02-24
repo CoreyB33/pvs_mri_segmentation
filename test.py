@@ -4,12 +4,12 @@ import nibabel as nib
 from subprocess import Popen, PIPE
 
 from sklearn import metrics
-from utils import utils
-from utils import preprocess
-from utils.save_figures import *
-from utils.apply_model import apply_model_single_input
-from utils.apply_model import apply_model
-from utils.pad import pad_image
+import utils
+#from utils import preprocess
+from save_figures import *
+from apply_model import apply_model_single_input
+from apply_model import apply_model
+from pad import pad_image
 from tensorflow.keras.models import load_model
 from tensorflow.keras import backend as K
 from models.losses import *
