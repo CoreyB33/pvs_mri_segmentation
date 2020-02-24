@@ -3,7 +3,7 @@ import numpy as np
 import os
 import sys
 from PIL import Image
-from .utils import remove_ext
+from utils import remove_ext
 
 def scale_ct_for_png(img_data):
     ''' 
