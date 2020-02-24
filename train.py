@@ -145,6 +145,6 @@ for train_index,test_index in KFold(n_split).split(X):
                         callbacks=callbacks_list,)
 
     with open(HISTORY_PATH, 'w') as f:
-        json.dump(history.history, f)
+        json.dump(str(history.history), f)
 
     K.clear_session()
