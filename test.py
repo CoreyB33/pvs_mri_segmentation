@@ -15,7 +15,8 @@ from apply_model import apply_model
 from pad import pad_image
 from tensorflow.keras.models import load_model
 from tensorflow.keras import backend as K
-from models.losses import *
+import losses
+from losses import *
 
 os.environ['FSLOUTPUTTYPE'] = 'NIFTI_GZ'
 
