@@ -16,7 +16,7 @@ from tensorflow.keras.optimizers import Adam
 
 from multi_gpu import ModelMGPU
 from losses import *
-from unet import unet
+from threedunet import threedunet
 
 os.environ['FSLOUTPUTTYPE'] = 'NIFTI_GZ'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     num_patches = results.num_patches
     batch_size = results.batch_size
     model = results.model
-    model_architecture = "unet"
+    model_architecture = "threedunet"
     start_time = utils.now()
     experiment_details = start_time + "_" + model_architecture + "_" +\
             results.experiment_details
@@ -71,7 +71,7 @@ if __name__ == "__main__":
 
     ######### MODEL AND CALLBACKS #########
     if not model:
-        model = unet(model_path=MODEL_PATH,
+        model = threedunet(model_path=MODEL_PATH,
                           num_channels=num_channels,
                           loss=dice_coef_loss,
                           ds=2,
