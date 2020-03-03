@@ -1,5 +1,5 @@
-from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D, AveragePooling2D, concatenate,\
-    GlobalAveragePooling2D, add, UpSampling2D
+from tensorflow.keras.layers import Input, Conv3D, MaxPooling3D, AveragePooling3D, concatenate,\
+    GlobalAveragePooling3D, add, UpSampling3D
 from tensorflow.keras.layers import Concatenate
 from tensorflow.keras.layers import Activation, Dropout
 from tensorflow.keras.layers import BatchNormalization
