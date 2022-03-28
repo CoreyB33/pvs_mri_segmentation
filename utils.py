@@ -3,7 +3,8 @@ from datetime import datetime
 from urllib.request import urlopen
 from urllib.error import URLError
 
-from .pad import pad_image
+import pad
+from pad import pad_image
 
 import os
 import argparse

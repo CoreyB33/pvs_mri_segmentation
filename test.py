@@ -162,6 +162,7 @@ if __name__ == "__main__":
                                                                                STATS_FILE,
                                                                                thresh,)
 
+
         # crop off the padding if necessary
         diff_num_slices = int(np.abs(pred_shape[-1]-orig_shape[-2])/2)
 
@@ -201,6 +202,34 @@ if __name__ == "__main__":
     pred_vols = np.array(pred_vols)
     gt_vols = np.array(gt_vols)
     corr = np.corrcoef(pred_vols, gt_vols)[0, 1]
+    #print(pred_vols.dtype)
+    #print(pred_vols[0,].dtype)
+    #print(gt_vols.dtype)
+    #print(pred_vols.shape)
+    #print(pred_vols[0,].shape)
+    #print(gt_vols.shape)
+    #pred_vols_2=pred_vols.astype(int)
+    #gt_vols_2=gt_vols.astype(int)
+    #pred_vols_3=np.concatenate((pred_vols_2))
+    #gt_vols_3=np.concatenate((gt_vols_2))
+    #print(pred_vols_3.dtype)
+    #print(gt_vols_3.dtype)
+    #print(pred_vols_3.shape)
+    #print(gt_vols_3.shape)
+    
+    #from sklearn.metrics import roc_curve
+    #fpr_keras, tpr_keras, thresholds_keras = roc_curve(gt_vols_2, pred_vols_2)
+    
+    #plt.figure(1)
+    #plt.plot([0, 1], [0, 1], 'k--')
+    #plt.plot(fpr_keras, tpr_keras, label='Keras (area = {:.3f})'.format(auc_keras))
+    #plt.plot(fpr_rf, tpr_rf, label='RF (area = {:.3f})'.format(auc_rf))
+    #plt.xlabel('False positive rate')
+    #plt.ylabel('True positive rate')
+    #plt.title('ROC curve')
+    #plt.legend(loc='best')
+    #plt.show()
+    
     print("*** Segmentation complete. ***")
     print("Mean DICE: {:.3f}".format(mean_dice))
     print("Volume Correlation: {:.3f}".format(corr))

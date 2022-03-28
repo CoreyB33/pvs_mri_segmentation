@@ -8,6 +8,8 @@ from sklearn.model_selection import KFold
 import utils
 import patch_ops
 import tensorflow as tf
+import sklearn
+import matplotlib.pyplot as plt
 
 
 from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping, ReduceLROnPlateau
@@ -68,6 +70,11 @@ if __name__ == "__main__":
             os.makedirs(d)
 
     PATCH_SIZE = [int(x) for x in results.patch_size.split("x")]
+    
+    METRICS = [ 
+      tf.keras.metrics.BinaryAccuracy(name='accuracy'),
+      tf.keras.metrics.Precision(name='precision'),
+      dice_coef,]
 
     ######### MODEL AND CALLBACKS #########
     if not model:
@@ -77,12 +84,13 @@ if __name__ == "__main__":
                           ds=2,
                           lr=learning_rate,
                           num_gpus=NUM_GPUS,
-                          verbose=1,)
+                          verbose=1,
+                          metrics=METRICS,)
     else:
         print("Continuing training with", model)
         model = load_model(model, custom_objects=custom_losses)
 
-    monitor = "val_dice_coef"
+    monitor = "loss"
 
     # checkpoints
     checkpoint_filename = str(start_time) +\
@@ -91,16 +99,17 @@ if __name__ == "__main__":
 
     checkpoint_filename = os.path.join(WEIGHT_DIR, checkpoint_filename)
     checkpoint = ModelCheckpoint(checkpoint_filename,
-                                 monitor='val_loss',
+                                 monitor='loss',
                                  save_best_only=True,
                                  mode='auto',
-                                 verbose=0,)
+                                 verbose=0,
+                                 metrics=METRICS,)
 
     # tensorboard
     tb = TensorBoard(log_dir=TB_LOG_DIR)
 
     # early stopping
-    es = EarlyStopping(monitor="val_loss",
+    es = EarlyStopping(monitor="loss",
                        min_delta=1e-4,
                        patience=10,
                        verbose=1,
@@ -109,7 +118,7 @@ if __name__ == "__main__":
     callbacks_list = [checkpoint, tb, es]
 
     ######### DATA IMPORT #########
-    DATA_DIR = os.path.join("data", "train")
+    DATA_DIR = os.path.join("data", "train_conservative_sensitivity_normalized")
     
     t1_patches, mask_patches = patch_ops.CreatePatchesForTraining(
         atlasdir=DATA_DIR,
@@ -135,5 +144,49 @@ if __name__ == "__main__":
 
     with open(HISTORY_PATH, 'w') as f:
         json.dump(str(history.history), f)
+        
+    #def plot_roc(name, labels, predictions, **kwargs):
+    #    fp, tp, _ = sklearn.metrics.roc_curve(labels, predictions)
+
+#        plt.plot(100*fp, 100*tp, label=name, linewidth=2, **kwargs)
+ #       plt.xlabel('False positives [%]')
+  #      plt.ylabel('True positives [%]')
+   #     plt.xlim([-0.5,20])
+    #    plt.ylim([80,100.5])
+     #   plt.grid(True)
+      #  ax = plt.gca()
+       # ax.set_aspect('equal')
+        
+    #plot_roc("Train Baseline", y_true, y_pred, color=colors[0])
+    #print(history)
+    #tp=history.history['tp']
+    #tn=history.history['tn']
+    #fp=history.history['fp']
+    #fn=history.history['fn']
+    #print(tp[1])
+    #sensitivity=[]
+    #specificity=[]
+    
+    #for i in range(len(tp)):
+    #    sens=tp[i]/(tp[i]+fn[i])
+    #    spec=tn[i]/(tn[i]+fp[i])
+    #    spec_x=1-spec
+    #    sensitivity.append(sens)
+    #    specificity.append(spec_x)
+    
+    #print(sensitivity)
+    #print(specificity)
+    #sensitivity=history.history['tp']/(history.history['tp']+history.history['fn'])
+    #print(sensitivity)   
+    #train_labels=history.history
+    #plt.plot(specificity, sensitivity)
+    #plt.show()
+    
+    #file1 = open("myfile.txt","w")
+    #file1.writelines('sensitivity:')
+    #file1.writelines(str(sensitivity))
+    #file1.writelines('100-specificity:')
+    #file1.writelines(str(specificity))
+    #file1.close()
 
     K.clear_session()

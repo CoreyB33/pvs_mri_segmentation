@@ -14,13 +14,15 @@ from multi_gpu import ModelMGPU
 import json
 
 
+
 def unet(model_path,
          num_channels,
          loss="binary_crossentropy",
          ds=2,
          lr=1e-4,
          num_gpus=1,
-         verbose=0,):
+         verbose=0,
+         metrics=None,):
     inputs = Input((None, None, num_channels))
 
     conv1 = Conv2D(64//ds, 3, activation='relu', padding='same', )(inputs)
@@ -71,7 +73,7 @@ def unet(model_path,
 
     # dice as a human-readble metric
     model.compile(optimizer=Adam(lr=lr),
-                  metrics=[dice_coef],
+                  metrics=metrics,
                   loss=loss)
 
     # save json before checking if multi-gpu
@@ -86,7 +88,7 @@ def unet(model_path,
     if num_gpus > 1:
         model = ModelMGPU(model, num_gpus)
         model.compile(optimizer=Adam(lr=lr),
-                      metrics=[dice_coef],
+                      metrics=metrics,
                       loss=loss)
 
     return model
