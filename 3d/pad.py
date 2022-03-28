@@ -1,0 +1,58 @@
+import numpy as np
+
+def pad_image(img_data, target_dims=None):
+    '''
+    Pads the image to the nearest greater multiple of 16.
+    This is due to the downsample/upsample count in the Unet.
+    '''
+    #print("length of image data shape from pad.py= {}".format(len(img_data.shape)))
+    # pad to nearest greater multiple of 2**NUM_DOWNSAMPLES
+    # if target_dims not provided
+    if not target_dims:
+        NUM_DOWNSAMPLES = 3
+        scaling = 2**NUM_DOWNSAMPLES
+        target_dims = [int(np.ceil(x/scaling)) * scaling for x in img_data.shape[:3]]
+        target_dims = [256,256,176]
+        
+    target_dims = list(target_dims)
+    #print("lenght of img_data shape = {}".format(len(img_data.shape)))
+    # handle number of channels
+    if len(img_data.shape) == 4:
+        num_channels = img_data.shape[-1]
+    else:
+        num_channels = 1
+    target_dims.append(num_channels)
+
+    
+    #print("Num Channels = {}".format(num_channels))
+    
+    #print("Img_data.shape = {}".format(img_data.shape))
+    
+    left_pad = round(float(target_dims[0] - img_data.shape[0]) / 2)
+    right_pad = round(float(target_dims[0] - img_data.shape[0]) - left_pad)
+    top_pad = round(float(target_dims[1] - img_data.shape[1]) / 2)
+    bottom_pad = round(float(target_dims[1] - img_data.shape[1]) - top_pad)
+    front_pad = round(float(target_dims[2] - img_data.shape[2]) / 2)
+    back_pad = round(float(target_dims[2] - img_data.shape[2]) - front_pad)
+    # skip padding along axial slices; this model is a slice-by-slice segmentation
+    #front_pad = 3
+    #back_pad = 3
+    # enforce that the axial slice dimension is the same as input image
+    # this means no padding for axial slices
+    target_dims[2] = img_data.shape[2]
+
+    pads = ((left_pad, right_pad),
+            (top_pad, bottom_pad),
+            (front_pad, back_pad))
+    
+    new_img = np.zeros((256,256,176,2))
+
+    if len(img_data.shape) == 4:
+        for c in range(num_channels):
+            new_img[:,:,:,c] = np.pad(img_data[:,:,:,c], pads, 'constant', constant_values=0)
+    else:
+        pads=((left_pad, right_pad),(top_pad, bottom_pad), (front_pad, back_pad))
+        new_img[:,:,:,0] = np.pad(img_data[:,:,:], pads, 'constant', constant_values=0)
+        new_img = new_img[:,:,:,0]
+
+    return new_img
